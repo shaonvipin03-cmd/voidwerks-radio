@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voidwerks Radio</title>
+<meta name="theme-color" content="#e9e8e2">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Noto covers practically every script; Google serves only the pieces a page uses -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Thai:wght@400;700&family=Noto+Sans+Hebrew:wght@400;700&display=swap">
+<script>
+  // set theme before first paint (saved choice, else the phone's setting)
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem("vw-theme"); } catch (e) {}
+    if (t !== "dark" && t !== "light") {
+      t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<style>
+  :root {
+    --paper: #e9e8e2;
+    --ink: #1a1a1a;
+    --dim: #6b6b66;
+    --line: #1a1a1a;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --paper: #131313;
+    --ink: #e4e2da;
+    --dim: #8c8b84;
+    --line: #e4e2da;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; margin: 0; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans Mono", ui-monospace, Menlo, Consolas, "Noto Sans JP", "Noto Sans KR",
+      "Noto Sans SC", "Noto Sans TC", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Thai",
+      "Noto Sans Hebrew",
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo",
+      "Noto Sans CJK JP", "Noto Sans CJK KR", "Noto Sans CJK SC", "Noto Sans CJK TC",
+      "Microsoft YaHei", "Malgun Gothic", sans-serif;
+    /* fluid base size: 14px on phones, grows to 18px on big monitors; everything else is in em */
+    font-size: clamp(14px, 11px + 0.55vw, 18px);
+    line-height: 1.5;
+    display: grid;
+    place-items: start center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(clamp(8px, 2vw, 32px), env(safe-area-inset-top))
+             max(clamp(8px, 2vw, 32px), env(safe-area-inset-right))
+             max(clamp(8px, 2vw, 32px), env(safe-area-inset-bottom))
+             max(clamp(8px, 2vw, 32px), env(safe-area-inset-left));
+  }
+  .screen {
+    width: 100%;
+    max-width: 480px;                 /* phones */
+    border: 2px solid var(--line);
+    padding: 1.3em 1.4em;
+  }
+  @media (min-width: 700px)  { .screen { max-width: 680px; } }    /* tablets / small windows */
+  @media (min-width: 960px)  { .screen { max-width: 1060px; } }   /* laptops: two columns */
+  @media (min-width: 1700px) { .screen { max-width: 1320px; } }   /* big monitors */
+  @media (min-width: 2000px) { body { font-size: 22px; } .screen { max-width: 1600px; } }
+  @media (min-width: 2800px) { body { font-size: 28px; } .screen { max-width: 2000px; } }
+  @media (min-width: 3400px) { body { font-size: 36px; } .screen { max-width: 2600px; } }
+
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hd { display: flex; align-items: center; gap: 10px; }
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+  .rule.dash { border-top-style: dashed; }
+  h1 { margin: 0; font-size: 1em; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .dim { color: var(--dim); }
+  .label { color: var(--dim); text-transform: uppercase; letter-spacing: .12em; font-size: .8em; }
+  .title { font-size: 1.3em; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; line-height: 1.3; }
+  .artist { margin-top: 2px; overflow-wrap: anywhere; }
+  .album { margin-top: 2px; font-size: .86em; overflow-wrap: anywhere; min-height: 1.5em; }
+  .np { min-height: 10em; }
+  /* read-only progress bar: a div, not an input, so it cannot be dragged or seeked */
+  .prog { height: .45em; min-height: 6px; border: 1px solid var(--line); margin-top: .85em; pointer-events: none; user-select: none; }
+  .prog > i { display: block; height: 100%; width: 0; background: var(--ink); }
+  .times { display: flex; justify-content: space-between; font-size: .86em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  #viz { display: block; width: 100%; height: clamp(56px, 8vw, 120px); margin-top: .85em; pointer-events: none; }
+
+  .controls { display: flex; align-items: center; gap: 1em; }
+  button, .btn {
+    font: inherit; color: var(--ink); background: transparent;
+    border: 1px solid var(--line); padding: .45em .85em; cursor: pointer;
+    text-decoration: none; text-transform: lowercase; border-radius: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  button:hover, .btn:hover, button:focus-visible, .btn:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
+  #theme { padding: 2px 8px; font-size: .86em; }
+  #play { min-width: 7.5em; font-weight: 700; padding: .7em 1em; }
+  .vol { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 2px;
+    background: var(--ink); outline: none; margin: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: .85em; height: 1.3em; background: var(--ink); border: 0; border-radius: 0; cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb { width: .85em; height: 1.3em; background: var(--ink); border: 0; border-radius: 0; cursor: pointer; }
+  .err { min-height: 1.5em; margin-top: 10px; overflow-wrap: anywhere; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  footer { margin-top: 1em; text-align: center; font-size: .8em; color: var(--dim); }
+
+  input[type=search] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; font: inherit; color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 0; padding: .55em .7em; margin-top: 8px; outline: none;
+  }
+  input[type=search]:focus { background: var(--ink); color: var(--paper); }
+  input[type=search]:focus::placeholder { color: var(--paper); opacity: .6; }
+  input::placeholder { color: var(--dim); }
+  .list { margin-top: 6px; max-height: clamp(150px, 26vh, 340px); overflow: auto; overscroll-behavior: contain; }
+  .list > .dim { padding: 6px 2px; }
+  .item {
+    display: flex; justify-content: space-between; gap: 10px; width: 100%;
+    text-align: left; border: 0; border-bottom: 1px dashed var(--line);
+    padding: .5em 2px; text-transform: none;
+  }
+  .item .n { overflow-wrap: anywhere; }
+  .item .dim { flex: none; }
+  .item:hover .dim, .item:focus-visible .dim { color: var(--paper); }
+  [hidden] { display: none !important; }
+
+  /* tv: fills the width, but never taller than the window */
+  #tvv {
+    display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 72vh; max-height: 72dvh;
+    object-fit: contain; background: #000; margin-top: 8px;
+  }
+  .tabs { display: flex; gap: 8px; margin-top: 1em; }
+  .tabs button { flex: 1; font-weight: 700; }
+  .tabs button.on { background: var(--ink); color: var(--paper); }
+
+  /* ---- radio tab layout ----
+     phones: one column, in the original order (player, picker, actions)
+     laptops and up: player on the left, picker on the right */
+  .radio-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .radio-grid > .player  { grid-area: player; min-width: 0; }
+  .radio-grid > .side    { grid-area: side;   min-width: 0; }
+  .radio-grid > .actions-wrap { grid-area: actions; min-width: 0; }
+  .radio-grid { grid-template-areas: "player" "side" "actions"; }
+
+  @media (min-width: 960px) {
+    .radio-grid {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      grid-template-areas: "player side" "actions side";
+      column-gap: 2.2em;
+      grid-template-rows: auto 1fr;
+    }
+    .radio-grid > .side { border-left: 1px solid var(--line); padding-left: 2.2em; margin-left: -1.1em; }
+    .list { max-height: clamp(180px, 30vh, 420px); }
+    .np { min-height: 12em; }
+    .title { font-size: 1.5em; }
+  }
+
+  /* landscape phones and other short windows: save vertical space */
+  @media (max-height: 520px) {
+    .np { min-height: 0; }
+    #viz { height: 40px; }
+    .rule { margin: .6em 0; }
+    .list { max-height: 120px; }
+    #tvv { max-height: 60vh; max-height: 60dvh; }
+  }
+
+  /* touch screens: comfortable tap targets */
+  @media (pointer: coarse) {
+    button, .btn { min-height: 44px; }
+    #theme { min-height: 36px; padding: 2px 12px; }
+    input[type=range] { height: 4px; }
+    input[type=range]::-webkit-slider-thumb { width: 20px; height: 30px; }
+    input[type=range]::-moz-range-thumb { width: 20px; height: 30px; }
+  }
+</style>
+</head>
+<body>
+<main class="screen">
+  <div class="row">
+    <h1>Voidwerks Radio</h1>
+    <span class="hd">
+      <span id="live" class="dim">[ .... ]</span>
+      <button id="theme" type="button" aria-label="Toggle dark mode">[ dark ]</button>
+    </span>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button id="t-radio" type="button" role="tab" aria-selected="true" class="on">[ radio ]</button>
+    <button id="t-tv" type="button" role="tab" aria-selected="false">[ tv ]</button>
+  </div>
+
+  <div id="tab-radio" class="radio-grid" role="tabpanel">
+
+    <div class="player">
+      <hr class="rule">
+
+      <section class="np">
+        <div class="label">now playing</div>
+        <div class="title" id="title">-</div>
+        <div class="artist" id="artist"></div>
+        <div class="album dim" id="album"></div>
+        <div class="prog" aria-hidden="true"><i id="fill"></i></div>
+        <div class="times dim" aria-hidden="true"><span id="elapsed">-:--</span><span id="remain">-:--</span></div>
+        <canvas id="viz" aria-hidden="true"></canvas>
+      </section>
+
+      <hr class="rule dash">
+
+      <div class="controls">
+        <button id="play" aria-label="Play">[ play ]</button>
+        <div class="vol">
+          <span class="label">vol</span>
+          <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume">
+        </div>
+      </div>
+      <div class="err" id="err"></div>
+
+      <hr class="rule dash">
+
+      <div class="row dim">
+        <span>listeners: <span id="listeners">-</span></span>
+        <span>peak: <span id="peak">-</span></span>
+        <span>mp3 <span id="br">128k</span></span>
+      </div>
+    </div>
+
+    <div class="side">
+      <hr class="rule">
+
+      <section id="picker">
+        <div class="row">
+          <span class="label">station</span>
+          <span class="dim" id="mode">all music</span>
+        </div>
+        <input id="q" type="search" placeholder="search artists..." autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search artists">
+        <div class="list" id="results"></div>
+        <div class="label" style="margin-top:14px">selected</div>
+        <div class="list" id="chosen"></div>
+        <div class="actions" style="margin-top:10px">
+          <button id="apply" type="button">play selected</button>
+          <button id="reset" type="button">all music</button>
+        </div>
+        <div class="err" id="perr"></div>
+      </section>
+    </div>
+
+    <div class="actions-wrap">
+      <hr class="rule">
+
+      <div class="actions">
+        <button id="next">next &gt;&gt;</button>
+        <button id="copy">copy stream url</button>
+        <a class="btn" href="/radio.mp3">raw stream</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="tab-tv" role="tabpanel" hidden>
+  <hr class="rule">
+
+  <section id="tv">
+    <div class="row">
+      <span class="label">tv</span>
+      <span class="dim" id="tvmsg"></span>
+    </div>
+    <video id="tvv" playsinline autoplay hidden></video>
+    <div class="actions" style="margin-top:8px">
+      <button id="tvbtn" type="button">[ watch ]</button>
+      <button id="tvmute" type="button" hidden>[ mute ]</button>
+      <button id="tvfs" type="button" hidden>[ fullscreen ]</button>
+    </div>
+  </section>
+  </div>
+
+  <footer>self-hosted / icecast + liquidsoap</footer>
+</main>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+(() => {
+  const STREAM = "/radio.mp3";
+  const STATUS = "/status-json.xsl";
+  const API = "/radio/api";
+  const NP = "/radio/np";
+  const META = "/radio/meta";
+  const $ = id => document.getElementById(id);
+  const audio = $("audio"), playBtn = $("play");
+  const root = document.documentElement;
+
+  let playing = false;
+
+  // one-line status messages that clear themselves
+  const flashTimers = new Map();
+  function flash(el, text, ms) {
+    el.textContent = text;
+    clearTimeout(flashTimers.get(el));
+    if (ms) flashTimers.set(el, setTimeout(() => { if (el.textContent === text) el.textContent = ""; }, ms));
+  }
+
+  // ---- dark / light ----
+  function applyTheme(t) {
+    root.setAttribute("data-theme", t);
+    $("theme").textContent = t === "dark" ? "[ light ]" : "[ dark ]";
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", t === "dark" ? "#131313" : "#e9e8e2");
+  }
+  applyTheme(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+  $("theme").addEventListener("click", () => {
+    const t = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(t);
+    try { localStorage.setItem("vw-theme", t); } catch {}
+  });
+
+  // ---- volume ----
+  let vol = 0.8;
+  try { vol = parseFloat(localStorage.getItem("vw-vol") ?? "0.8"); } catch {}
+  if (!(vol >= 0 && vol <= 1)) vol = 0.8;
+  audio.volume = vol;
+  $("vol").value = vol;
+  $("vol").addEventListener("input", e => {
+    audio.volume = +e.target.value;
+    try { localStorage.setItem("vw-vol", e.target.value); } catch {}
+  });
+
+  // If autoplay is blocked, the first tap on empty space starts the radio.
+  function tapHandler(e) {
+    if (e.target.closest("button, a, input")) return;
+    document.removeEventListener("click", tapHandler);
+    if (!playing) start();
+  }
+
+  // --- Android / lock-screen media controls (Media Session API) ---
+  const hasSession = "mediaSession" in navigator;
+  const ART = [
+    { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+    { src: "icon-512.png", sizes: "512x512", type: "image/png" },
+  ];
+  function setSessionState(state) {
+    if (hasSession) navigator.mediaSession.playbackState = state;
+  }
+  function setSessionMeta(artist, title, album) {
+    if (!hasSession || typeof MediaMetadata === "undefined") return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title || "Voidwerks Radio",
+      artist: artist || "Voidwerks Radio",
+      album: album || "Voidwerks Radio",
+      artwork: ART,
+    });
+  }
+  if (hasSession) {
+    setSessionMeta("", "");
+    const act = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); } catch {} };
+    act("play", () => { if (!playing) start(); });
+    act("pause", () => { if (playing) stop(); });
+    act("stop", () => { if (playing) stop(); });
+    act("nexttrack", () => $("next").click());
+  }
+
+  let attempt = 0;
+  async function start(auto) {
+    const me = ++attempt; // only the newest attempt may touch the player
+    if (tvOn) tvStop();   // radio and tv do not play together
+    $("err").textContent = "";
+    // fresh connection each time so we join the live edge, not buffered audio
+    audio.src = STREAM + "?t=" + Date.now();
+    try {
+      await audio.play();
+      if (me !== attempt) return;
+      playing = true;
+      playBtn.textContent = "[ pause ]";
+      playBtn.setAttribute("aria-label", "Pause");
+      setSessionState("playing");
+      document.removeEventListener("click", tapHandler);
+    } catch (e) {
+      if (me !== attempt) return; // superseded by a newer start(); ignore
+      audio.removeAttribute("src");
+      if (auto) {
+        $("err").textContent = "> tap anywhere to start";
+        document.addEventListener("click", tapHandler);
+      } else {
+        $("err").textContent = "> could not start: " + (e.message || e);
+      }
+    }
+  }
+  function stop() {
+    // keep the src attached so Android keeps the media notification and its
+    // play button; start() always reconnects fresh to the live edge
+    audio.pause();
+    playing = false;
+    playBtn.textContent = "[ play ]";
+    playBtn.setAttribute("aria-label", "Play");
+    setSessionState("paused");
+  }
+  playBtn.addEventListener("click", () => playing ? stop() : start());
+  audio.addEventListener("error", () => {
+    if (playing) { $("err").textContent = "> stream dropped, press play"; stop(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" && e.target === document.body && tabTv.hidden) { e.preventDefault(); playBtn.click(); }
+  });
+
+  // --- now playing / stats ---
+  function setLive(text) { $("live").textContent = "[ " + text + " ]"; }
+  function splitTrack(src) {
+    let artist = src.artist || "", title = src.title || "";
+    if (!artist && title.includes(" - ")) {
+      const i = title.indexOf(" - ");
+      artist = title.slice(0, i);
+      title = title.slice(i + 3);
+    }
+    return { artist, title };
+  }
+  // Icecast switches the title when a track starts, but listeners hear it
+  // later (burst buffer + browser buffer). Delay the display to match.
+  const BURST = 1; // seconds, roughly icecast's default burst
+  let lastKey = "";
+  function currentDelay() {
+    let ahead = 0;
+    try {
+      const b = audio.buffered;
+      if (b.length) ahead = Math.max(0, b.end(b.length - 1) - audio.currentTime);
+    } catch {}
+    return Math.min(30, ahead + BURST) * 1000;
+  }
+  function show(artist, title, album) {
+    $("perr").textContent = ""; // clears "switching in a few seconds" once the new track shows
+    $("title").textContent = title;
+    $("artist").textContent = artist;
+    $("album").textContent = album || "";
+    document.title = (artist ? artist + " - " : "") + title + " | Voidwerks";
+    setSessionMeta(artist, title, album);
+  }
+
+  // ---- track progress (display only: the stream is live, nothing here can seek it) ----
+  // Liquidsoap reports "elapsed remaining" in seconds for the track it is encoding now.
+  // Listeners hear it a few seconds later (buffers), so shift by the same lag as the title.
+  let bar = null;      // { dur, start }  start = performance.now() when the listener hears second 0
+  let pending = null;  // next track, waiting for the listener to reach it
+  let syncBusy = false;
+  const fillEl = $("fill"), elapsedEl = $("elapsed"), remainEl = $("remain");
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s));
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }
+  async function syncBar() {
+    if (syncBusy) return;
+    syncBusy = true;
+    try {
+      const t0 = performance.now();
+      const r = await fetch(NP + "?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return;
+      const parts = (await r.text()).trim().split(/\s+/).map(parseFloat);
+      const t1 = performance.now();
+      const e = parts[0], rem = parts[1];
+      if (!(isFinite(e) && isFinite(rem) && e >= 0 && rem >= 0 && e + rem > 1)) { bar = null; pending = null; return; }
+      const dur = e + rem;
+      const lag = playing ? currentDelay() : 0;
+      const start = t0 + (t1 - t0) / 2 - e * 1000 + lag;
+      if (bar && Math.abs(bar.dur - dur) < 1.5) {
+        pending = null;
+        if (Math.abs(bar.start - start) > 1500) bar.start = start;
+      } else if (start <= performance.now()) {
+        bar = { dur, start };
+        pending = null;
+      } else {
+        pending = { dur, start };
+      }
+    } catch (e) {
+      // keep whatever the bar was doing
+    } finally {
+      syncBusy = false;
+    }
+  }
+  function renderBar() {
+    const now = performance.now();
+    if (pending && now >= pending.start) { bar = pending; pending = null; }
+    if (!bar) {
+      fillEl.style.width = "0";
+      elapsedEl.textContent = "-:--";
+      remainEl.textContent = "-:--";
+      return;
+    }
+    const el = Math.min(bar.dur, Math.max(0, (now - bar.start) / 1000));
+    fillEl.style.width = (el / bar.dur * 100).toFixed(2) + "%";
+    elapsedEl.textContent = fmt(el);
+    remainEl.textContent = "-" + fmt(bar.dur - el);
+  }
+
+  // tags straight from Liquidsoap as UTF-8 JSON (artist, title, album); {} if unavailable
+  async function getMeta() {
+    try {
+      const r = await fetch(META + "?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(4000) });
+      if (!r.ok) return {};
+      const j = await r.json();
+      return j && typeof j === "object" ? j : {};
+    } catch (e) { return {}; }
+  }
+
+  async function poll() {
+    try {
+      const r = await fetch(STATUS + "?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(6000) });
+      const j = await r.json();
+      let s = j.icestats && j.icestats.source;
+      if (Array.isArray(s)) s = s.find(x => (x.listenurl || "").endsWith("radio.mp3")) || s[0];
+      if (!s) { setLive("offline"); $("title").textContent = "stream is offline"; $("artist").textContent = ""; return; }
+      setLive("on air");
+      const t = splitTrack(s);
+      const m = await getMeta();
+      const artist = m.artist || t.artist;
+      const title = m.title || t.title || s.server_name || "untitled";
+      const album = m.album || "";
+      const key = artist + "|" + title + "|" + album;
+      if (key !== lastKey) {
+        const first = lastKey === "";
+        lastKey = key;
+        syncBar();
+        setTimeout(() => show(artist, title, album), first || !playing ? 0 : currentDelay());
+      }
+      $("listeners").textContent = s.listeners ?? "-";
+      $("peak").textContent = s.listener_peak ?? "-";
+      const bm = /bitrate=(\d+)/.exec(s.audio_info || "");
+      if (bm) $("br").textContent = bm[1] + "k";
+    } catch (e) {
+      setLive("unreachable");
+    }
+  }
+  poll();
+  setInterval(poll, 1000);
+  // phones throttle timers in background tabs / locked screens; refresh on return
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  window.addEventListener("focus", poll);
+  setInterval(syncBar, 10000);
+  setInterval(renderBar, 250);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) syncBar(); });
+  audio.addEventListener("playing", () => setTimeout(syncBar, 3000));
+  audio.addEventListener("pause", () => syncBar());
+
+  $("copy").addEventListener("click", async () => {
+    const url = location.origin + STREAM;
+    try { await navigator.clipboard.writeText(url); $("copy").textContent = "copied"; }
+    catch { prompt("Stream URL", url); }
+    setTimeout(() => $("copy").textContent = "copy stream url", 1500);
+  });
+
+  // skip to the next track (shared: affects every listener)
+  $("next").addEventListener("click", async () => {
+    try {
+      const r = await fetch("/radio/skip", { method: "POST" });
+      if (r.status === 429) { flash($("err"), "> slow down, just skipped", 4000); return; }
+      if (!r.ok) throw new Error(r.status);
+      flash($("err"), "> skipped", 4000);
+      setTimeout(poll, 1500);
+      if (playing) setTimeout(() => start(), 800); // rejoin the live edge
+    } catch (e) {
+      $("err").textContent = "> skip failed";
+    }
+  });
+
+  // ---- artist picker (the station is shared: a pick changes it for everyone) ----
+  const qEl = $("q"), resEl = $("results"), chosenEl = $("chosen"), perr = $("perr");
+  let chosen = [];
+  let searchTimer = 0;
+  let searchSeq = 0;
+
+  async function api(path, opts) {
+    const r = await fetch(API + path, Object.assign({ cache: "no-store", signal: AbortSignal.timeout(15000) }, opts));
+    let body = null;
+    try { body = await r.json(); } catch {}
+    if (!r.ok) { const e = new Error("http " + r.status); e.status = r.status; e.body = body; throw e; }
+    return body;
+  }
+  function note(el, text) {
+    el.replaceChildren();
+    const d = document.createElement("div");
+    d.className = "dim";
+    d.textContent = text;
+    el.appendChild(d);
+  }
+  // artist names come from file tags, so always set them as text, never HTML
+  function item(prefix, name, count, onClick) {
+    const b = document.createElement("button");
+    b.className = "item";
+    b.type = "button";
+    const n = document.createElement("span");
+    n.className = "n";
+    n.textContent = prefix + " " + name;
+    b.appendChild(n);
+    if (count != null) {
+      const c = document.createElement("span");
+      c.className = "dim";
+      c.textContent = count;
+      b.appendChild(c);
+    }
+    b.addEventListener("click", onClick);
+    return b;
+  }
+  function renderChosen() {
+    chosenEl.replaceChildren();
+    if (!chosen.length) { note(chosenEl, "(none: station plays all music)"); return; }
+    for (const name of chosen) {
+      chosenEl.appendChild(item("x", name, null, () => {
+        chosen = chosen.filter(n => n !== name);
+        renderChosen();
+        search();
+      }));
+    }
+  }
+  function renderResults(list, indexing, scanned) {
+    const fresh = list.filter(a => !chosen.includes(a.name));
+    if (!fresh.length) {
+      note(resEl, indexing ? "> indexing library (" + scanned + " files so far), try again soon"
+                           : (list.length ? "> everything matching is already selected" : "> no matches"));
+      return;
+    }
+    resEl.replaceChildren();
+    for (const a of fresh) {
+      resEl.appendChild(item("+", a.name, a.tracks, () => {
+        if (!chosen.includes(a.name)) chosen.push(a.name);
+        renderChosen();
+        search();
+      }));
+    }
+  }
+  async function search() {
+    const seq = ++searchSeq;
+    try {
+      const j = await api("/artists?q=" + encodeURIComponent(qEl.value.trim()));
+      if (seq === searchSeq) renderResults(j.artists || [], j.indexing, j.scanned);
+    } catch {
+      if (seq === searchSeq) note(resEl, "> search unavailable");
+    }
+  }
+  qEl.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(search, 250); });
+
+  function setMode(sel) {
+    const n = (sel && sel.artists ? sel.artists.length : 0);
+    $("mode").textContent = n ? n + (n === 1 ? " artist" : " artists") + ", " + sel.tracks + " tracks" : "all music";
+  }
+  async function refreshMode(first) {
+    try {
+      const sel = await api("/selection");
+      setMode(sel);
+      if (first) { chosen = (sel.artists || []).slice(); renderChosen(); }
+    } catch {}
+  }
+  async function applySelection(names) {
+    perr.textContent = "";
+    try {
+      const sel = await api("/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artists: names }),
+      });
+      chosen = (sel.artists || []).slice();
+      renderChosen();
+      setMode(sel);
+      search();
+      flash(perr, names.length ? "> switching in a few seconds" : "> back to all music", 8000);
+      setTimeout(poll, 5000);
+      if (playing) setTimeout(() => start(), 4500); // rejoin the live edge
+    } catch (e) {
+      perr.textContent = e.status === 429 ? "> someone just changed it, wait a few seconds"
+                                          : "> could not change the station";
+    }
+  }
+  $("apply").addEventListener("click", () => {
+    if (!chosen.length) { perr.textContent = "> pick at least one artist first"; return; }
+    applySelection(chosen);
+  });
+  $("reset").addEventListener("click", () => applySelection([]));
+
+  renderChosen();
+  refreshMode(true);
+  search();
+  setInterval(() => refreshMode(false), 15000);
+
+  // ---- visualizer (attaches on first user gesture: autoplay + AudioContext rules) ----
+  let actx = null, analyser = null, fdata = null;
+  function initViz() {
+    if (actx) { if (actx.state !== "running") actx.resume().catch(() => {}); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      actx = new AC();
+      const src = actx.createMediaElementSource(audio);
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
+      src.connect(analyser);
+      analyser.connect(actx.destination);
+      fdata = new Uint8Array(analyser.frequencyBinCount);
+    } catch (e) { actx = null; analyser = null; }
+  }
+  ["pointerdown", "keydown", "touchend"].forEach(ev =>
+    document.addEventListener(ev, function once() {
+      initViz();
+      ["pointerdown", "keydown", "touchend"].forEach(x => document.removeEventListener(x, once));
+    }, { passive: true })
+  );
+  // if the browser suspends the context (phone interruptions etc.), wake it when audio resumes
+  audio.addEventListener("playing", () => { if (actx && actx.state !== "running") actx.resume().catch(() => {}); });
+
+  const cv = $("viz"), cx = cv.getContext("2d");
+  // more bars on wider canvases, so the visualizer fills the space instead of stretching
+  let BARS = 32;
+  function sizeViz() {
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = cv.clientWidth * dpr;
+    cv.height = cv.clientHeight * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    BARS = Math.max(24, Math.min(64, Math.round(cv.clientWidth / 14)));
+  }
+  sizeViz();
+  window.addEventListener("resize", sizeViz);
+  // the canvas also changes size when the layout switches columns or the font scales
+  if (window.ResizeObserver) new ResizeObserver(sizeViz).observe(cv);
+
+  function drawViz() {
+    requestAnimationFrame(drawViz);
+    if (document.hidden) return;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cx.clearRect(0, 0, w, h);
+    cx.fillStyle = getComputedStyle(root).getPropertyValue("--ink").trim() || "#000";
+    const gap = w > 600 ? 4 : 3, bw = (w - gap * (BARS - 1)) / BARS;
+    const live = analyser && playing && actx.state === "running";
+    if (live) analyser.getByteFrequencyData(fdata);
+    for (let i = 0; i < BARS; i++) {
+      let v = 0;
+      if (live) {
+        // spread bars over ~0-9 kHz, with more resolution on the low end
+        const lo = Math.floor(Math.pow(i / BARS, 2) * 105) + 1;
+        const hi = Math.max(lo + 1, Math.floor(Math.pow((i + 1) / BARS, 2) * 105) + 1);
+        let sum = 0;
+        for (let k = lo; k < hi; k++) sum += fdata[k];
+        v = sum / (hi - lo) / 255;
+      }
+      const bh = Math.max(2, v * h);
+      cx.fillRect(i * (bw + gap), h - bh, bw, bh);
+    }
+  }
+  drawViz();
+
+  // ---- tv (ErsatzTV channel, through the /iptv path) ----
+  // ".m3u8" = HLS (the browser's own player on Safari/iOS, hls.js elsewhere)
+  // ".ts"   = raw MPEG-TS (mpegts.js; Chrome, Firefox, Edge, Android)
+  const TV_URL = "/iptv/channel/1.ts";
+  const HLS_JS = "https://cdn.jsdelivr.net/npm/hls.js@1";
+  const TS_JS = "https://cdn.jsdelivr.net/npm/mpegts.js@1";
+  const tvv = $("tvv"), tvBtn = $("tvbtn"), tvMsg = $("tvmsg");
+  let tvOn = false, tvPlayer = null;
+  const scriptCache = {};
+  function loadScript(src) {
+    return scriptCache[src] || (scriptCache[src] = new Promise((ok, fail) => {
+      const el = document.createElement("script");
+      el.src = src;
+      el.onload = ok;
+      el.onerror = () => { delete scriptCache[src]; fail(new Error("could not load the player library")); };
+      document.head.appendChild(el);
+    }));
+  }
+  function tvStop() {
+    tvOn = false;
+    if (tvPlayer) {
+      try { if (tvPlayer.unload) tvPlayer.unload(); } catch (e) {}
+      try { if (tvPlayer.detachMediaElement) tvPlayer.detachMediaElement(); } catch (e) {}
+      try { tvPlayer.destroy(); } catch (e) {}
+      tvPlayer = null;
+    }
+    tvv.pause();
+    tvv.removeAttribute("src");
+    tvv.load();
+    tvv.hidden = true;
+    $("tvmute").hidden = true;
+    $("tvfs").hidden = true;
+    tvBtn.textContent = "[ watch ]";
+  }
+  function tvFail(text) {
+    tvStop();
+    flash(tvMsg, "> " + text, 8000);
+  }
+  async function tvStart() {
+    if (playing) stop();                 // radio and tv do not play together
+    tvOn = true;
+    tvv.hidden = false;
+    $("tvmute").hidden = false;
+    $("tvfs").hidden = false;
+    tvBtn.textContent = "[ stop ]";
+    tvMsg.textContent = "> loading...";
+    try {
+      const hls = /\.m3u8(\?|$)/.test(TV_URL);
+      if (hls && tvv.canPlayType("application/vnd.apple.mpegurl")) {
+        tvv.src = TV_URL;                // Safari / iOS play HLS natively
+      } else if (hls) {
+        await loadScript(HLS_JS);
+        if (!tvOn) return;
+        if (!window.Hls || !Hls.isSupported()) throw new Error("this browser cannot play HLS");
+        tvPlayer = new Hls();
+        tvPlayer.on(Hls.Events.ERROR, (_e, d) => { if (d && d.fatal) tvFail("stream error (" + d.type + ")"); });
+        tvPlayer.loadSource(TV_URL);
+        tvPlayer.attachMedia(tvv);
+      } else {
+        await loadScript(TS_JS);
+        if (!tvOn) return;
+        if (!window.mpegts || !mpegts.getFeatureList().mseLivePlayback) throw new Error("this browser cannot play live MPEG-TS, use HLS");
+        tvPlayer = mpegts.createPlayer({ type: "mpegts", isLive: true, url: TV_URL });
+        tvPlayer.on(mpegts.Events.ERROR, (t) => tvFail("stream error (" + t + ")"));
+        tvPlayer.attachMediaElement(tvv);
+        tvPlayer.load();
+      }
+      // playback starts by itself (autoplay attribute) once data arrives
+    } catch (e) {
+      if (tvOn) tvFail(e.message || String(e));
+    }
+  }
+  tvBtn.addEventListener("click", () => tvOn ? tvStop() : tvStart());
+  tvv.addEventListener("playing", () => { tvMsg.textContent = ""; });
+  tvv.addEventListener("waiting", () => { if (tvOn) tvMsg.textContent = "> buffering..."; });
+  tvv.addEventListener("error", () => { if (tvOn) tvFail("could not play the stream"); });
+  tvv.volume = audio.volume;
+  $("vol").addEventListener("input", e => { tvv.volume = +e.target.value; });
+  $("tvmute").addEventListener("click", () => {
+    tvv.muted = !tvv.muted;
+    $("tvmute").textContent = tvv.muted ? "[ unmute ]" : "[ mute ]";
+  });
+  $("tvfs").addEventListener("click", () => {
+    if (tvv.requestFullscreen) tvv.requestFullscreen().catch(() => {});
+    else if (tvv.webkitEnterFullscreen) tvv.webkitEnterFullscreen();
+  });
+
+  // ---- tabs: radio / tv (link straight to the tv tab with .../radio/#tv) ----
+  const tabRadio = $("tab-radio"), tabTv = $("tab-tv"), tbRadio = $("t-radio"), tbTv = $("t-tv");
+  const openTv = location.hash === "#tv";
+  function showTab(name) {
+    const tv = name === "tv";
+    if (!tv && tvOn) tvStop();           // leaving the tv tab stops the picture
+    tabRadio.hidden = tv;
+    tabTv.hidden = !tv;
+    tbRadio.classList.toggle("on", !tv);
+    tbTv.classList.toggle("on", tv);
+    tbRadio.setAttribute("aria-selected", String(!tv));
+    tbTv.setAttribute("aria-selected", String(tv));
+    try { history.replaceState(null, "", tv ? "#tv" : location.pathname + location.search); } catch (e) {}
+    if (!tv && typeof sizeViz === "function") sizeViz();   // the visualizer canvas has no size while hidden
+  }
+  tbRadio.addEventListener("click", () => showTab("radio"));
+  tbTv.addEventListener("click", () => showTab("tv"));
+  window.addEventListener("hashchange", () => showTab(location.hash === "#tv" ? "tv" : "radio"));
+  if (openTv) showTab("tv");
+
+  // try to autoplay on open (falls back to tap-anywhere if the browser blocks it)
+  if (!openTv) start(true);
+})();
+</script>
+</body>
+</html>
