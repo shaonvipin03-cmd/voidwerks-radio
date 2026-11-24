@@ -29,6 +29,7 @@
     --ink: #1a1a1a;
     --dim: #6b6b66;
     --line: #1a1a1a;
+    --tap: 52px;               /* minimum comfortable touch target */
     color-scheme: light;
   }
   :root[data-theme="dark"] {
@@ -38,7 +39,7 @@
     --line: #e4e2da;
     color-scheme: dark;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { min-height: 100%; margin: 0; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
@@ -50,8 +51,8 @@
       "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo",
       "Noto Sans CJK JP", "Noto Sans CJK KR", "Noto Sans CJK SC", "Noto Sans CJK TC",
       "Microsoft YaHei", "Malgun Gothic", sans-serif;
-    /* fluid base size: 14px on phones, grows to 18px on big monitors; everything else is in em */
-    font-size: clamp(14px, 11px + 0.55vw, 18px);
+    /* fluid base size: 15px on phones, grows to 18px on big monitors; everything else is in em */
+    font-size: clamp(15px, 12px + 0.55vw, 18px);
     line-height: 1.5;
     display: grid;
     place-items: start center;
@@ -66,7 +67,7 @@
     width: 100%;
     max-width: 480px;                 /* phones */
     border: 2px solid var(--line);
-    padding: 1.3em 1.4em;
+    padding: 1.2em 1.2em 1.4em;
   }
   @media (min-width: 700px)  { .screen { max-width: 680px; } }    /* tablets / small windows */
   @media (min-width: 960px)  { .screen { max-width: 1060px; } }   /* laptops: two columns */
@@ -77,62 +78,86 @@
 
   .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .hd { display: flex; align-items: center; gap: 10px; }
-  .rule { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 1.1em 0; }
   .rule.dash { border-top-style: dashed; }
   h1 { margin: 0; font-size: 1em; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
   .dim { color: var(--dim); }
   .label { color: var(--dim); text-transform: uppercase; letter-spacing: .12em; font-size: .8em; }
-  .title { font-size: 1.3em; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; line-height: 1.3; }
+  .title { font-size: 1.35em; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; line-height: 1.3; }
   .artist { margin-top: 2px; overflow-wrap: anywhere; }
   .album { margin-top: 2px; font-size: .86em; overflow-wrap: anywhere; min-height: 1.5em; }
   .np { min-height: 10em; }
   /* read-only progress bar: a div, not an input, so it cannot be dragged or seeked */
-  .prog { height: .45em; min-height: 6px; border: 1px solid var(--line); margin-top: .85em; pointer-events: none; user-select: none; }
+  .prog { height: .6em; min-height: 8px; border: 1px solid var(--line); margin-top: .85em; pointer-events: none; user-select: none; }
   .prog > i { display: block; height: 100%; width: 0; background: var(--ink); }
   .times { display: flex; justify-content: space-between; font-size: .86em; margin-top: 4px; font-variant-numeric: tabular-nums; }
   #viz { display: block; width: 100%; height: clamp(56px, 8vw, 120px); margin-top: .85em; pointer-events: none; }
 
-  .controls { display: flex; align-items: center; gap: 1em; }
+  /* ---- buttons: big, press feedback, no sticky hover on touch ---- */
   button, .btn {
     font: inherit; color: var(--ink); background: transparent;
-    border: 1px solid var(--line); padding: .45em .85em; cursor: pointer;
+    border: 1px solid var(--line); padding: .6em 1em; cursor: pointer;
     text-decoration: none; text-transform: lowercase; border-radius: 0;
     display: inline-flex; align-items: center; justify-content: center;
+    min-height: var(--tap);
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
   }
-  button:hover, .btn:hover, button:focus-visible, .btn:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
-  #theme { padding: 2px 8px; font-size: .86em; }
-  #play { min-width: 7.5em; font-weight: 700; padding: .7em 1em; }
-  .vol { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
-  input[type=range] {
-    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 2px;
-    background: var(--ink); outline: none; margin: 0;
+  button:active, .btn:active, button:focus-visible, .btn:focus-visible {
+    background: var(--ink); color: var(--paper); outline: none;
   }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: .85em; height: 1.3em; background: var(--ink); border: 0; border-radius: 0; cursor: pointer;
+  @media (hover: hover) {
+    button:hover, .btn:hover { background: var(--ink); color: var(--paper); }
   }
-  input[type=range]::-moz-range-thumb { width: .85em; height: 1.3em; background: var(--ink); border: 0; border-radius: 0; cursor: pointer; }
-  .err { min-height: 1.5em; margin-top: 10px; overflow-wrap: anywhere; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  footer { margin-top: 1em; text-align: center; font-size: .8em; color: var(--dim); }
+  #theme { min-height: 40px; padding: .2em .8em; font-size: .9em; }
 
+  /* transport: play + next side by side, thumb-sized */
+  .transport { display: flex; gap: .8em; }
+  .transport button { flex: 1; min-height: 3.6em; font-weight: 700; font-size: 1.1em; }
+  #play { flex: 1.6; }
+
+  /* volume: big grab area, thin receipt-style line, block thumb */
+  .vol { display: flex; align-items: center; gap: 12px; min-width: 0; margin-top: .4em; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 48px;
+    background: transparent; outline: none; margin: 0; touch-action: pan-y;
+  }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--ink); border: 0; }
+  input[type=range]::-moz-range-track { height: 4px; background: var(--ink); border: 0; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 26px; height: 38px; margin-top: -17px;
+    background: var(--ink); border: 0; border-radius: 0; cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb { width: 26px; height: 38px; background: var(--ink); border: 0; border-radius: 0; cursor: pointer; }
+  input[type=range]:focus-visible { outline: 1px dashed var(--ink); outline-offset: 2px; }
+
+  .err { min-height: 1.5em; margin-top: 10px; overflow-wrap: anywhere; }
+  .actions { display: flex; gap: .7em; flex-wrap: wrap; }
+  .actions > * { flex: 1 1 8em; }
+  footer { margin-top: 1.2em; text-align: center; font-size: .8em; color: var(--dim); }
+
+  /* 16px minimum stops iOS from zooming the page when the field is focused */
   input[type=search] {
     -webkit-appearance: none; appearance: none;
-    width: 100%; font: inherit; color: var(--ink); background: transparent;
-    border: 1px solid var(--line); border-radius: 0; padding: .55em .7em; margin-top: 8px; outline: none;
+    width: 100%; font: inherit; font-size: max(16px, 1em); color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 0; padding: 0 .8em; min-height: var(--tap);
+    margin-top: 8px; outline: none;
   }
   input[type=search]:focus { background: var(--ink); color: var(--paper); }
   input[type=search]:focus::placeholder { color: var(--paper); opacity: .6; }
   input::placeholder { color: var(--dim); }
-  .list { margin-top: 6px; max-height: clamp(150px, 26vh, 340px); overflow: auto; overscroll-behavior: contain; }
-  .list > .dim { padding: 6px 2px; }
+  .list { margin-top: 6px; max-height: clamp(180px, 30vh, 340px); overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .list > .dim { padding: 10px 2px; }
   .item {
-    display: flex; justify-content: space-between; gap: 10px; width: 100%;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
     text-align: left; border: 0; border-bottom: 1px dashed var(--line);
-    padding: .5em 2px; text-transform: none;
+    padding: .5em 4px; min-height: var(--tap); text-transform: none; justify-content: space-between;
   }
   .item .n { overflow-wrap: anywhere; }
   .item .dim { flex: none; }
-  .item:hover .dim, .item:focus-visible .dim { color: var(--paper); }
+  .item:active .dim, .item:focus-visible .dim { color: var(--paper); }
+  @media (hover: hover) { .item:hover .dim { color: var(--paper); } }
   [hidden] { display: none !important; }
 
   /* tv: fills the width, but never taller than the window */
@@ -140,8 +165,8 @@
     display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 72vh; max-height: 72dvh;
     object-fit: contain; background: #000; margin-top: 8px;
   }
-  .tabs { display: flex; gap: 8px; margin-top: 1em; }
-  .tabs button { flex: 1; font-weight: 700; }
+  .tabs { display: flex; gap: 10px; margin-top: 1em; }
+  .tabs button { flex: 1; font-weight: 700; min-height: 56px; }
   .tabs button.on { background: var(--ink); color: var(--paper); }
 
   /* ---- radio tab layout ----
@@ -171,17 +196,19 @@
     .np { min-height: 0; }
     #viz { height: 40px; }
     .rule { margin: .6em 0; }
-    .list { max-height: 120px; }
+    .list { max-height: 140px; }
+    .transport button { min-height: var(--tap); }
     #tvv { max-height: 60vh; max-height: 60dvh; }
   }
 
-  /* touch screens: comfortable tap targets */
-  @media (pointer: coarse) {
-    button, .btn { min-height: 44px; }
-    #theme { min-height: 36px; padding: 2px 12px; }
-    input[type=range] { height: 4px; }
-    input[type=range]::-webkit-slider-thumb { width: 20px; height: 30px; }
-    input[type=range]::-moz-range-thumb { width: 20px; height: 30px; }
+  /* keep the controls reachable: on phones the transport sticks to the bottom of the receipt */
+  @media (max-width: 959px) and (pointer: coarse) {
+    .controls-dock {
+      position: sticky; bottom: 0; z-index: 5;
+      background: var(--paper);
+      border-top: 1px dashed var(--line);
+      margin: 0 -1.2em; padding: .8em 1.2em calc(.4em + env(safe-area-inset-bottom));
+    }
   }
 </style>
 </head>
@@ -217,8 +244,11 @@
 
       <hr class="rule dash">
 
-      <div class="controls">
-        <button id="play" aria-label="Play">[ play ]</button>
+      <div class="controls-dock">
+        <div class="transport">
+          <button id="play" aria-label="Play">[ play ]</button>
+          <button id="next" type="button">next &gt;&gt;</button>
+        </div>
         <div class="vol">
           <span class="label">vol</span>
           <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume">
@@ -247,7 +277,7 @@
         <div class="list" id="results"></div>
         <div class="label" style="margin-top:14px">selected</div>
         <div class="list" id="chosen"></div>
-        <div class="actions" style="margin-top:10px">
+        <div class="actions" style="margin-top:12px">
           <button id="apply" type="button">play selected</button>
           <button id="reset" type="button">all music</button>
         </div>
@@ -259,7 +289,6 @@
       <hr class="rule">
 
       <div class="actions">
-        <button id="next">next &gt;&gt;</button>
         <button id="copy">copy stream url</button>
         <a class="btn" href="/radio.mp3">raw stream</a>
       </div>
@@ -276,7 +305,7 @@
       <span class="dim" id="tvmsg"></span>
     </div>
     <video id="tvv" playsinline autoplay hidden></video>
-    <div class="actions" style="margin-top:8px">
+    <div class="actions" style="margin-top:10px">
       <button id="tvbtn" type="button">[ watch ]</button>
       <button id="tvmute" type="button" hidden>[ mute ]</button>
       <button id="tvfs" type="button" hidden>[ fullscreen ]</button>

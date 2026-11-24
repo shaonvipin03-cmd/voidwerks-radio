@@ -60,9 +60,28 @@ let
     # track shared from the private page (written by radio-private.py; empty file = nothing)
     shared = playlist(mode="normal", loop=false, reload_mode="watch", "/var/lib/radio-private/shared.m3u")
 
-    # shared track first, then the artist selection, then the whole library
+    # --- pause when nobody is listening ---
+    awake = ref(true)
+    last_listener = ref(time())
+
+    def check_listeners() =
+      try
+        r = http.get(timeout=3., "http://127.0.0.1:${toString radioPort}/status-json.xsl")
+        let json.parse (j : {icestats: {source: {listeners: int}}}) = r
+        if j.icestats.source.listeners > 0 then
+          last_listener := time()
+          awake := true
+        elsif time() - last_listener() > 60. then
+          awake := false
+        end
+      catch _ do
+        awake := true
+      end
+    end
+    thread.run(every=3., check_listeners)
+
     mix   = fallback(track_sensitive=true, [shared, sel, all])
-    radio = mksafe(mix)
+    radio = mksafe(switch(track_sensitive=false, [({ awake() }, mix), ({ true }, blank())]))
 
     # remember the tags of the track being encoded (UTF-8, straight from the files)
     meta_cur = ref([])
@@ -279,6 +298,13 @@ in
             rewrite ^/radio/private-api/(.*)$ /$1 break;
             client_max_body_size 16k;
             proxy_read_timeout 30s;
+          '';
+        };
+        # ErsatzTV channel, so the tv tab works on http://<tailscale-ip>:8104/
+          proxyPass = "http://127.0.0.1:8409";
+          extraConfig = ''
+            proxy_buffering off;
+            proxy_read_timeout 3600s;
           '';
         };
       };
